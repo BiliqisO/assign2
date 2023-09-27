@@ -1,8 +1,19 @@
 import { Dialog, Transition } from "@headlessui/react";
 import React, { Fragment, useState } from "react";
+import useProposeCampaign from "../hooks/useProposeCampaign";
+import { useConnection } from "../context/connection";
+import { supportedChains } from "../constants";
+import { parseEther } from "ethers";
 
 const CreateCampaign = () => {
     let [isOpen, setIsOpen] = useState(false);
+    const [title, setTitle] = useState("");
+    const [goal, setGoal] = useState(0.5);
+    const [duration, setDuration] = useState(1);
+    const [sendingTx, setSendingTx] = useState(false);
+    const { connect, isActive, account, switchToChain } = useConnection();
+
+    const proposeCampaign = useProposeCampaign();
 
     function closeModal() {
         setIsOpen(false);
@@ -11,6 +22,32 @@ const CreateCampaign = () => {
     function openModal() {
         setIsOpen(true);
     }
+
+    const handleProposeCampaign = async () => {
+        if (!title || !goal || !duration)
+            return alert("Please provide all valeus");
+        if (!isActive) return alert("please, connect");
+        try {
+            setSendingTx(true);
+            const tx = await proposeCampaign(
+                title,
+                parseEther(String(goal)),
+                duration * 60
+            );
+            const receipt = await tx.wait();
+            if (receipt.status === 0) return alert("tx failed");
+
+            alert("campaign created!!");
+        } catch (error) {
+            console.log("error: ", error);
+            if (error.info.error.code === 4001) {
+                return alert("You rejected the request");
+            }
+            alert("something went wrong");
+        } finally {
+            setSendingTx(false);
+        }
+    };
     return (
         <Fragment>
             <button
@@ -64,16 +101,26 @@ const CreateCampaign = () => {
                                                 Title
                                             </label>
                                             <input
+                                                value={title}
+                                                onChange={(e) =>
+                                                    setTitle(e.target.value)
+                                                }
                                                 type="text"
                                                 className="outline-0 py-2 px-1 rounded-lg mt-2 border border-blue-400"
                                             />
                                         </div>
                                         <div className="flex flex-col">
                                             <label className="font-bold">
-                                                Goal
+                                                Goal (ETH Amount)
                                             </label>
                                             <input
-                                                type="text"
+                                                value={goal}
+                                                onChange={(e) =>
+                                                    setGoal(
+                                                        Number(e.target.value)
+                                                    )
+                                                }
+                                                type="number"
                                                 className="outline-0 py-2 px-1 rounded-lg mt-2 border border-blue-400"
                                             />
                                         </div>
@@ -82,13 +129,46 @@ const CreateCampaign = () => {
                                                 Duration(Minutes)
                                             </label>
                                             <input
+                                                value={duration}
+                                                onChange={(e) =>
+                                                    setDuration(
+                                                        Number(e.target.value)
+                                                    )
+                                                }
                                                 type="number"
                                                 className="outline-0 py-2 px-1 rounded-lg mt-2 border border-blue-400"
                                             />
                                         </div>
-                                        <div className="cursor-pointer w-full rounded-md bg-blue-400 p-3 text-sm font-medium text-white hover:bg-opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 text-center">
-                                            Create Campaign
-                                        </div>
+
+                                        {isActive ? (
+                                            <div
+                                                onClick={handleProposeCampaign}
+                                                className="cursor-pointer w-full rounded-md bg-blue-400 p-3 text-sm font-medium text-white hover:bg-opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 text-center"
+                                            >
+                                                {sendingTx
+                                                    ? "Creating Campaign..."
+                                                    : "Create Campaign"}
+                                            </div>
+                                        ) : account ? (
+                                            <div
+                                                onClick={() =>
+                                                    switchToChain(
+                                                        supportedChains[0]
+                                                    )
+                                                }
+                                                className="cursor-pointer w-full rounded-md bg-blue-400 p-3 text-sm font-medium text-white hover:bg-opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 text-center"
+                                            >
+                                                Switch to Sepolia
+                                            </div>
+                                        ) : (
+                                            <div
+                                                onClick={connect}
+                                                disabled={sendingTx}
+                                                className="cursor-pointer w-full rounded-md bg-blue-400 p-3 text-sm font-medium text-white hover:bg-opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 text-center"
+                                            >
+                                                Connect
+                                            </div>
+                                        )}
                                     </form>
                                 </Dialog.Panel>
                             </Transition.Child>
