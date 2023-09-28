@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import useCampaignCount from "./useCampaignCount";
 import { useConnection } from "../context/connection";
-import { getCrowdfundContract } from "../utils";
+import {
+    getCrowdfundContract,
+    getCrowdfundContractWithProvider,
+} from "../utils";
 
 const useAllCampaigns = () => {
     const [campaigns, setCampaigns] = useState([]);
@@ -42,7 +45,19 @@ const useAllCampaigns = () => {
         };
 
         fetchAllCampaigns();
+
+        // Listen for event
+        const handleProposeCampaignEvent = (id, title, amount, duration) => {
+            console.log({ id, title, amount, duration });
+        };
+        const contract = getCrowdfundContractWithProvider(provider);
+        contract.on("ProposeCampaign", handleProposeCampaignEvent);
+
+        return () => {
+            contract.off("ProposeCampaign", handleProposeCampaignEvent);
+        };
     }, [campaignNo, provider]);
+
     return campaigns;
 };
 

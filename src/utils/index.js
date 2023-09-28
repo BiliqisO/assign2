@@ -17,11 +17,11 @@ export const getContract = async (address, abi, provider, withWrite) => {
     let signer;
     if (withWrite) signer = await provider.getSigner();
 
-    return new ethers.Contract(
-        address,
-        abi,
-        withWrite ? signer ?? provider : provider
-    );
+    return new ethers.Contract(address, abi, withWrite ? signer : provider);
+};
+
+export const getContractWithProvider = (address, abi, provider) => {
+    return new ethers.Contract(address, abi, provider);
 };
 
 export const getCrowdfundContract = async (provider, withWrite) => {
@@ -30,6 +30,14 @@ export const getCrowdfundContract = async (provider, withWrite) => {
         crowdFundAbi,
         provider,
         withWrite
+    );
+};
+
+export const getCrowdfundContractWithProvider = (provider) => {
+    return getContractWithProvider(
+        crowdfundContractAddress,
+        crowdFundAbi,
+        provider
     );
 };
 
